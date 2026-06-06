@@ -1,0 +1,6 @@
+{
+  "name": "Glitch Arcade",
+  "description": "Glitch Arcade is a high-octane cyberpunk-themed premium gaming platform featuring Neon Rift Origins and a diverse catalog of arcade games.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
