@@ -11,7 +11,7 @@ import {
   Brain, 
   HelpCircle,
   Eye,
-  Activity,
+  Activity, 
   Award as AwardIcon
 } from 'lucide-react';
 
