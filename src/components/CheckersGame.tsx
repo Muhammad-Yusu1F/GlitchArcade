@@ -11,7 +11,7 @@ import {
   Brain, 
   HelpCircle,
   Eye,
-  Activity, 
+  Activity,
   Award as AwardIcon
 } from 'lucide-react';
 
@@ -40,6 +40,7 @@ interface SavedScore {
 
 export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameProps) {
   const [board, setBoard] = useState<Board>([]);
+  const [gameMode, setGameMode] = useState<'vs-ai' | 'local-2p'>('vs-ai');
   const [turn, setTurn] = useState<'user' | 'ai'>('user');
   const [selectedCell, setSelectedCell] = useState<{ r: number; c: number } | null>(null);
   const [validMoves, setValidMoves] = useState<{ r: number; c: number; captured?: { r: number; c: number } }[]>([]);
@@ -141,15 +142,20 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
     setWonState(null);
     setFinalScoreComputed(0);
     setMatchHistory([]);
-    setAiStatusMessage("Yangi o'yin boshlandi! Xavfsiz yurish qiling.");
-    setAiMoveLog(["Siz: Yangi jang boshlandi!"]);
+    
+    const startMsg = gameMode === 'vs-ai'
+      ? "Yangi o'yin boshlandi! Xavfsiz yurish qiling."
+      : "2 kishilik mahalliy o'yin boshlandi! Navbat: 1-O'yinchi (To'q sariq)";
+    
+    setAiStatusMessage(startMsg);
+    setAiMoveLog([`Tizim: ${startMsg}`]);
     playRetroSound(440, 0.1, 'sine');
     setTimeout(() => playRetroSound(880, 0.15, 'sine'), 100);
   };
 
   useEffect(() => {
     initBoard();
-  }, []);
+  }, [gameMode]);
 
   // Timer countdown and match progression interval
   useEffect(() => {
@@ -158,33 +164,45 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
       setMatchSeconds(prev => prev + 1);
 
       // Decrement countdown turn timer
-      if (turn === 'user' && !aiThinking) {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            // Time is UP! Forced random moves
-            playRetroSound(180, 0.4, 'sawtooth');
-            const legalMoves = getAllLegalMovesForPlayer(board, 'user');
-            if (legalMoves.length > 0) {
-              const randomPair = legalMoves[Math.floor(Math.random() * legalMoves.length)];
-              const randomMove = randomPair.moves[Math.floor(Math.random() * randomPair.moves.length)];
-              setAiStatusMessage("⚠️ Vaqtingiz tugadi! Majburiy tasodifiy yurish qilindi.");
-              setAiMoveLog(prevLogs => ["Tizim: Vaqt tugadi! Tasodifiy yurish." , ...prevLogs].slice(0, 10));
-              executeMove(randomPair.r, randomPair.c, randomMove.r, randomMove.c, randomMove.captured);
+      if (!aiThinking) {
+        // In local 2 player mode, both players have a countdown limit!
+        // In vs AI mode, only the user has a countdown limit.
+        const isCountdownActive = gameMode === 'local-2p' || (gameMode === 'vs-ai' && turn === 'user');
+        
+        if (isCountdownActive) {
+          setTimeLeft(prev => {
+            if (prev <= 1) {
+              // Time is UP! Forced random moves
+              playRetroSound(180, 0.4, 'sawtooth');
+              const currentTurn = turn;
+              const legalMoves = getAllLegalMovesForPlayer(board, currentTurn);
+              if (legalMoves.length > 0) {
+                const randomPair = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+                const randomMove = randomPair.moves[Math.floor(Math.random() * randomPair.moves.length)];
+                
+                const turnLabel = currentTurn === 'user' 
+                  ? (gameMode === 'vs-ai' ? "Siz" : "1-O'yinchi") 
+                  : "2-O'yinchi";
+                
+                setAiStatusMessage(`⚠️ ${turnLabel}ning vaqti tugadi! Majburiy tasodifiy yurish qilindi.`);
+                setAiMoveLog(prevLogs => [`Tizim: ${turnLabel} vaqti tugadi! Tasodifiy yurish.` , ...prevLogs].slice(0, 10));
+                executeMove(randomPair.r, randomPair.c, randomMove.r, randomMove.c, randomMove.captured);
+              }
+              return 30; // reset
             }
-            return 30; // reset
-          }
-          
-          if (prev <= 6) {
-            playRetroSound(350, 0.08, 'sine');
-          }
+            
+            if (prev <= 6) {
+              playRetroSound(350, 0.08, 'sine');
+            }
 
-          return prev - 1;
-        });
+            return prev - 1;
+          });
+        }
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [turn, board, aiThinking]);
+  }, [turn, board, aiThinking, gameMode]);
 
   // Helper to verify if coordinate inside board
   const isValidCoord = (r: number, c: number) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
@@ -324,7 +342,9 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
     const legalMoves = getAllLegalMovesForPlayer(currentBoard, nextTurn);
     if (legalMoves.length === 0) {
       // No moves left - current turn player lost!
-      const userWon = nextTurn === 'ai';
+      const player1Won = nextTurn === 'ai';
+      
+      const userWon = player1Won;
       const userFinalScore = scoreEarned + (userWon ? 500 + (12 - aiCaptured) * 35 : 60);
 
       playRetroSound(userWon ? 600 : 150, 0.4, 'sine');
@@ -339,7 +359,7 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
       const durationFormatted = `${Math.floor(matchSeconds / 60).toString().padStart(2, '0')}:${(matchSeconds % 60).toString().padStart(2, '0')}`;
       
       const newScoreEntry: SavedScore = {
-        name: currentGamerName,
+        name: gameMode === 'vs-ai' ? currentGamerName : "PVP Mahalliy Jang",
         score: userFinalScore,
         date: new Date().toLocaleDateString('uz-UZ'),
         result: userWon ? 'WON' : 'LOST',
@@ -354,14 +374,18 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
     }
   };
 
-  // Handle cell clicks for User
+  // Handle cell clicks for User / Player 2
   const handleCellClick = (r: number, c: number) => {
-    if (turn !== 'user' || aiThinking) return;
+    if (gameMode === 'vs-ai') {
+      if (turn !== 'user' || aiThinking) return;
+    } else {
+      if (aiThinking) return;
+    }
 
     const piece = board[r][c];
     
-    if (piece && piece.player === 'user') {
-      const allPlayerMoves = getAllLegalMovesForPlayer(board, 'user');
+    if (piece && piece.player === turn) {
+      const allPlayerMoves = getAllLegalMovesForPlayer(board, turn);
       const thisPieceMoves = allPlayerMoves.find(m => m.r === r && m.c === c);
       
       if (thisPieceMoves) {
@@ -419,6 +443,9 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
     } else if (movingPiece.player === 'ai' && toR === 7 && !movingPiece.isKing) {
       movingPiece.isKing = true;
       promoted = true;
+      if (gameMode === 'local-2p') {
+        setScoreEarned(prev => prev + 50);
+      }
       playRetroSound(300, 0.3, 'sawtooth');
     }
 
@@ -433,6 +460,9 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
         playRetroSound(700, 0.15, 'triangle');
       } else {
         setAiCaptured(prev => prev + 1);
+        if (gameMode === 'local-2p') {
+          setScoreEarned(prev => prev + 30);
+        }
         playRetroSound(280, 0.15, 'triangle');
       }
     } else {
@@ -442,9 +472,15 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
     // Logs coordinates representation index (e.g. g5, f4)
     const fromStr = `${String.fromCharCode(97 + fromC)}${8 - fromR}`;
     const toStr = `${String.fromCharCode(97 + toC)}${8 - toR}`;
-    const logMsg = movingPiece.player === 'user'
-      ? `O'yinchi: ${fromStr} ${capturedCell ? '×' : '→'} ${toStr}${promoted ? ' (DAMA!👑)' : ''}`
-      : `AI Robot: ${fromStr} ${capturedCell ? '×' : '→'} ${toStr}${promoted ? ' (DAMA!👑)' : ''}`;
+    
+    let playerLabel = '';
+    if (gameMode === 'vs-ai') {
+      playerLabel = movingPiece.player === 'user' ? "O'yinchi" : "AI Robot";
+    } else {
+      playerLabel = movingPiece.player === 'user' ? "1-O'yinchi (To'q sariq)" : "2-O'yinchi (Havorang)";
+    }
+
+    const logMsg = `${playerLabel}: ${fromStr} ${capturedCell ? '×' : '→'} ${toStr}${promoted ? ' (DAMA!👑)' : ''}`;
 
     setAiMoveLog(prev => [logMsg, ...prev].slice(0, 10));
     setMatchHistory(prev => [...prev, logMsg]);
@@ -458,20 +494,27 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
       const remainingCaps = getMovesForPiece(nextBoard, toR, toC, true).filter(m => m.captured);
       if (remainingCaps.length > 0) {
         keepJumping = true;
-        if (movingPiece.player === 'user') {
-          // Force player to jump again, pre-selecting piece
+        if (gameMode === 'vs-ai') {
+          if (movingPiece.player === 'user') {
+            // Force player to jump again, pre-selecting piece
+            setSelectedCell({ r: toR, c: toC });
+            setValidMoves(remainingCaps);
+            setAiStatusMessage("Davomiy xavfsiz zarba! Yana bir raqib donasini urib oling.");
+          } else {
+            // AI multi-jump sequence chain trigger automatically
+            setAiStatusMessage("Kiber AI davomiy zarba yo'llamoqda... (Double/Triple Jump) 🔥");
+            setTimeout(() => {
+              // Find the capture option
+              const chosenNextCap = remainingCaps[0];
+              executeMove(toR, toC, chosenNextCap.r, chosenNextCap.c, chosenNextCap.captured, nextBoard);
+            }, 1100);
+            return;
+          }
+        } else {
+          // Local 2P mode multi-jump:
           setSelectedCell({ r: toR, c: toC });
           setValidMoves(remainingCaps);
-          setAiStatusMessage("Davomiy xavfsiz zarba! Yana bir raqib donasini urib oling.");
-        } else {
-          // AI multi-jump sequence chain trigger automatically
-          setAiStatusMessage("Kiber AI davomiy zarba yo'llamoqda... (Double/Triple Jump) 🔥");
-          setTimeout(() => {
-            // Find the capture option
-            const chosenNextCap = remainingCaps[0];
-            executeMove(toR, toC, chosenNextCap.r, chosenNextCap.c, chosenNextCap.captured, nextBoard);
-          }, 1100);
-          return;
+          setAiStatusMessage(`${movingPiece.player === 'user' ? "1-O'yinchi" : "2-O'yinchi"}: Davomiy xavfsiz zarba! Yana bir donani urib oling.`);
         }
       }
     }
@@ -482,6 +525,12 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
       setAiJustMadeError(false);
       setAiOptimalVisualChoice(null);
       setTimeLeft(30); 
+      
+      const turnMsg = gameMode === 'vs-ai'
+        ? (nextTurn === 'user' ? "Sizning navbatingiz! Tafakkur qiling." : "Kiber AI kelgusi yo'lni hisoblamoqda...")
+        : (nextTurn === 'user' ? "Navbat: 1-O'yinchi (To'q sariq)" : "Navbat: 2-O'yinchi (Havorang)");
+        
+      setAiStatusMessage(turnMsg);
       checkGameEnd(nextBoard, nextTurn);
       if (nextTurn === 'user') {
         setAiThinking(false);
@@ -527,6 +576,7 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
 
   // AI execution brain with complete recursive multi-jump looks simulated
   useEffect(() => {
+    if (gameMode !== 'vs-ai') return;
     if (turn === 'ai') {
       setAiThinking(true);
       setAiStatusMessage("Kiber AI kelgusi oqilona yo'llarni chuqur tahlil qilmoqda...");
@@ -740,10 +790,16 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
             <h3 className={`font-display text-xl font-black italic tracking-wider uppercase text-center ${
               wonState ? 'text-emerald-400' : 'text-red-500'
             }`}>
-              {wonState ? "G'ALABA! (VICTORY)" : "MAG'LUBIYAT! (GAME OVER)"}
+              {gameMode === 'vs-ai'
+                ? (wonState ? "G'ALABA! (VICTORY)" : "MAG'LUBIYAT! (GAME OVER)")
+                : (wonState ? "1-O'YINCHI G'ALABA QOZONDI! 🏆" : "2-O'YINCHI G'ALABA QOZONDI! 🏆")
+              }
             </h3>
             <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mt-0.5 text-center px-4">
-              {wonState ? "Siz AI robotini strategik ustunlik bilan mag'lub etdingiz!" : "AI kelgusi barcha yo'llarni chuqur hisoblab chiqdi."}
+              {gameMode === 'vs-ai'
+                ? (wonState ? "Siz AI robotini strategik ustunlik bilan mag'lub etdingiz!" : "AI kelgusi barcha yo'llarni chuqur hisoblab chiqdi.")
+                : (wonState ? "1-O'yinchi (To'q sariq) ajoyib taktik zarbalar bilan yutib chiqdi!" : "2-O'yinchi (Havorang) barcha dushman donalarini butkul yakson qildi!")
+              }
             </span>
 
             {/* Top 10 Highscores list of the Arcade! */}
@@ -951,33 +1007,77 @@ export default function CheckersGame({ soundEnabled, onGameOver }: CheckersGameP
             </div>
           </div>
 
-          {/* Captures counts */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 bg-zinc-955 rounded-xl border border-white/5 text-center">
-              <span className="text-[8px] block text-orange-400 uppercase">URILGAN DONALAR</span>
-              <span className="font-display font-black text-sm block mt-0.5">{userCaptured} / 12</span>
-            </div>
-            <div className="p-2 bg-zinc-955 rounded-xl border border-white/5 text-center">
-              <span className="text-[8px] block text-cyan-400 uppercase">AI YO'QOTGANLARI</span>
-              <span className="font-display font-black text-sm block mt-0.5">{aiCaptured} / 12</span>
+          {/* O'yin rejimi (Game Mode Select) */}
+          <div className="space-y-2 bg-zinc-950/45 p-2.5 rounded-xl border border-white/5">
+            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">O'YIN REJIMINI TANLASH:</span>
+            <div className="grid grid-cols-2 gap-2 text-[9px] font-black font-mono text-center">
+              <button
+                onClick={() => {
+                  playRetroSound(400, 0.1, 'sine');
+                  setGameMode('vs-ai');
+                }}
+                className={`flex items-center justify-center gap-1 py-2 rounded-lg transition-all border cursor-pointer ${
+                  gameMode === 'vs-ai' ? 'bg-[#00daf3] border-[#00daf3] text-zinc-950 shadow-[0_0_12px_rgba(0,218,243,0.35)]' : 'bg-black/40 border-white/5 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Cpu size={11} />
+                <span>ROBOT GA QARSHI</span>
+              </button>
+              <button
+                onClick={() => {
+                  playRetroSound(420, 0.1, 'sine');
+                  setGameMode('local-2p');
+                }}
+                className={`flex items-center justify-center gap-1 py-2 rounded-lg transition-all border cursor-pointer ${
+                  gameMode === 'local-2p' ? 'bg-[#f97316] border-[#f97316] text-zinc-950 shadow-[0_0_12px_rgba(249,115,22,0.35)]' : 'bg-black/40 border-white/5 text-gray-400 hover:text-white'
+                }`}
+              >
+                <span>👥 2 KISHILIK</span>
+              </button>
             </div>
           </div>
 
-          {/* Difficulty Sliders */}
-          <div className="space-y-2 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-            <div className="flex justify-between text-[10px] font-mono">
-              <span className="text-gray-400">AI QIYNCHILIGI:</span>
-              <span className="text-cyan-400 font-bold">{aiPerfection}%</span>
+          {/* Captures counts */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-2 bg-zinc-950/60 rounded-xl border border-white/5 text-center">
+              <span className="text-[8px] block text-orange-400 uppercase">
+                {gameMode === 'vs-ai' ? "URILGAN DONALAR" : "1-O'YINCHI (SARIQ)"}
+              </span>
+              <span className="font-display font-black text-sm block mt-0.5 text-orange-400">{userCaptured} / 12</span>
             </div>
-            <input
-              type="range"
-              min="20"
-              max="100"
-              value={aiPerfection}
-              onChange={(e) => setAiPerfection(parseInt(e.target.value))}
-              className="w-full accent-cyan-500 bg-zinc-800 cursor-pointer h-1 rounded"
-            />
+            <div className="p-2 bg-zinc-950/60 rounded-xl border border-white/5 text-center">
+              <span className="text-[8px] block text-cyan-400 uppercase">
+                {gameMode === 'vs-ai' ? "AI YO'QOTGANLARI" : "2-O'YINCHI (HAVORANG)"}
+              </span>
+              <span className="font-display font-black text-sm block mt-0.5 text-cyan-400">{aiCaptured} / 12</span>
+            </div>
           </div>
+
+          {/* Difficulty Sliders (Only visible in VS-AI mode) */}
+          {gameMode === 'vs-ai' ? (
+            <div className="space-y-2 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
+              <div className="flex justify-between text-[10px] font-mono">
+                <span className="text-gray-400">AI QIYNCHILIGI:</span>
+                <span className="text-cyan-400 font-bold">{aiPerfection}%</span>
+              </div>
+              <input
+                type="range"
+                min="20"
+                max="100"
+                value={aiPerfection}
+                onChange={(e) => setAiPerfection(parseInt(e.target.value))}
+                className="w-full accent-cyan-500 bg-zinc-800 cursor-pointer h-1 rounded"
+              />
+            </div>
+          ) : (
+            <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-xl text-center">
+              <span className="text-[10px] font-mono text-orange-400 block tracking-widest uppercase">NAVBATDAGI O'YINCHI</span>
+              <div className="flex items-center justify-center gap-1.5 mt-1 font-black text-xs uppercase animate-pulse">
+                <div className={`w-2.5 h-2.5 rounded-full ${turn === 'user' ? 'bg-orange-500' : 'bg-cyan-400'}`} />
+                <span>{turn === 'user' ? "1-O'yinchi (To'q sariq)" : "2-O'yinchi (Havorang)"}</span>
+              </div>
+            </div>
+          )}
 
           {/* RESTORED PIECE DONA DIZAYNLARI MENU SCREEN */}
           <div className="space-y-2 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">

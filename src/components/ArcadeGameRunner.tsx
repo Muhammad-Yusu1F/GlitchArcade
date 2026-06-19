@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Game } from '../types';
 import { Play, RotateCcw, X, Volume2, VolumeX, Shield, Award, Zap, Trophy, HelpCircle } from 'lucide-react';
 import CheckersGame from './CheckersGame';
+import NeonTennisGame from './NeonTennisGame';
+import CyberTetrisGame from './CyberTetrisGame';
 
 interface ArcadeGameRunnerProps {
   game: Game;
@@ -2129,13 +2131,16 @@ export default function ArcadeGameRunner({ game, onClose, onGameCompleted }: Arc
   };
 
   const isCyberRacer = game.id === 'cyber-racer';
+  const isCyberTennis = game.id === 'neon-strike';
+  const isCyberTetris = game.id === 'pixel-quest';
+  const isWideGame = isCyberRacer || isCyberTennis || isCyberTetris;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-4 bg-black/94 backdrop-blur-2xl font-sans select-none">
       <div 
         ref={containerRef}
-        className={`w-full ${isCyberRacer ? 'sm:max-w-[920px] max-w-full' : 'max-w-md'} bg-zinc-950 border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,180,255,0.3)] flex flex-col relative transition-all duration-300`}
-        style={isCyberRacer ? { height: '670px' } : { height: '620px' }}
+        className={`w-full ${isWideGame ? 'sm:max-w-[980px] max-w-full' : 'max-w-md'} bg-zinc-950 border border-white/10 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,180,255,0.3)] flex flex-col relative transition-all duration-300`}
+        style={isWideGame ? { height: '670px' } : { height: '620px' }}
       >
         {/* Arcade Header Bar */}
         <div className="px-5 py-4 border-b border-white/5 bg-zinc-900/60 flex items-center justify-between">
@@ -2189,6 +2194,10 @@ export default function ArcadeGameRunner({ game, onClose, onGameCompleted }: Arc
                 ) : game.id === 'cyber-racer' ? (
                   <>
                     Yuguruvchini boshqarish uchun <b className="text-white">Chap &amp; O'ng (A &amp; D)</b> tugmalarini bosing. To'siqlar ustidan sakrash uchun <b className="text-[#00daf3]">Tepaga (W)</b>, pastdan sirg'alib o'tish uchun <b className="text-[#f13cf5]">Pastga (S)</b> tugmasidan foydalaning. To'siqlardan qoching va kreditlarni yig'ing!
+                  </>
+                ) : game.id === 'pixel-quest' ? (
+                  <>
+                    Bloklarni harakatlantirish uchun <b className="text-white">Chap &amp; O'ng (A &amp; D)</b> yoki klaviatura strelkali tugmalaridan, aylantirish uchun <b className="text-white">Tepaga (W)</b>, tez tushirish uchun esa <b className="text-[#00daf3]">Space</b> tugmalaridan foydalaning. Maxsus qobiliyatlarni ishga tushirish uchun <b className="text-[#a855f7]">1, 2, 3 va 4</b> tugmalarini bosing yoki o'ng tarafdagi tugmalarni ishlating!
                   </>
                 ) : (
                   <>
@@ -2292,6 +2301,24 @@ export default function ArcadeGameRunner({ game, onClose, onGameCompleted }: Arc
                 endGame();
               }} 
             />
+          ) : isCyberTennis && gameState === 'playing' ? (
+            <NeonTennisGame 
+              soundEnabled={soundEnabled} 
+              onGameOver={(finalScore) => {
+                stateRef.current.score = finalScore;
+                setScore(finalScore);
+                endGame();
+              }} 
+            />
+          ) : isCyberTetris && gameState === 'playing' ? (
+            <CyberTetrisGame 
+              soundEnabled={soundEnabled} 
+              onGameOver={(finalScore) => {
+                stateRef.current.score = finalScore;
+                setScore(finalScore);
+                endGame();
+              }} 
+            />
           ) : (
             <canvas 
               ref={canvasRef} 
@@ -2301,7 +2328,7 @@ export default function ArcadeGameRunner({ game, onClose, onGameCompleted }: Arc
           )}
 
           {/* Touch buttons overlay for mobile players */}
-          {gameState === 'playing' && !isCyberRacer && (
+          {gameState === 'playing' && !isWideGame && (
             <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-between px-8 pointer-events-auto sm:hidden">
               <button 
                 onTouchStart={handleLeftTouch}

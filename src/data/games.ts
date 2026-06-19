@@ -1,6 +1,10 @@
 import { Game } from '../types';
 // @ts-ignore
 import checkersCover from '../assets/images/cyber_checkers_board_cover_1780676273940.png';
+// @ts-ignore
+import tennisCover from '../assets/images/cyber_tennis_cover_1780851859766.png';
+// @ts-ignore
+import tetrisCover from '../assets/images/cyber_tetris_cover_1780984855838.png';
 
 // Hotlinked main hero images and key images provided in prompt
 export const HERO_GAME = {
@@ -33,29 +37,29 @@ export const INITIAL_GAMES: Game[] = [
   },
   {
     id: 'neon-strike',
-    title: 'Neon Strike',
+    title: 'Kiber Tennis Arena AI',
     rating: 4.9,
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCynI1IT3MTYJUKNQiMjbGk3hsCY5lSWHojC2WrlS0eI-3vwAHagAaEJGIy6kDOYJ3JfqQrDftpoGeWkaGbe-ecrH-_5hfN2KjsfNzSb9oiX5xh511WfZTJkflCSi9j8nfO2mcptueqaUg8M9KanjVRz8VmI8uawQvzrBDZHaQOrNTvrXbF1TAvlPF0_Mvg03ZMx5bi3hLGPEa2HnlpRnTj10hk0_7_nNQEm2P0xRS1U3Vb6NDwioMv6swHCI0p-tG8K0gtrSUnmoU',
-    category: 'dolzarb',
-    description: "Vaporwave uslubidagi ajoyib vizual effektlar va dinamik tovushlar jo'rligida kuchli kiber-dushmanlar to'lqinlariga qarshi kosmik jang qiling.",
-    playedCount: '89K',
-    releaseDate: '2026-03-01',
-    fileSize: '82 MB',
-    developer: 'Vectra Interactive',
-    tags: ['Kosmos', 'Shuter', 'Ekshn']
+    image: tennisCover,
+    category: 'sport',
+    description: "Mutlaqo yangicha kiber-sport maydoniga xush kelibsiz! Mukammal hisoblaydigan va to'p burchagini bashorat qiladigan aqlli AI robotga qarshi yoki do'stingiz bilan birga 2 kishilik mahalliy rejimda ajoyib kiber-tennis o'ynang.",
+    playedCount: '142K',
+    releaseDate: '2026-06-05',
+    fileSize: '8 MB',
+    developer: 'GlitchLabs Studio',
+    tags: ['Tennis', 'Mantiq', 'AI', 'Sport', 'PVP']
   },
   {
     id: 'pixel-quest',
-    title: 'Pixel Quest',
-    rating: 4.7,
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCWugYDkRezEWpwBZ_h-PkbhBnjSCs0Y5I8kyf1woerxcdkLup87Gz4CGR2qwQlA8qHEhqPT05ROIUYrAY8YM-dWGtOmJ1PnEgsZ6t_Z3BaOnZYD_G_A9wS68bWgRtW__Nx45ItlmI3qOU6i475JoD8Ipi3pkPgCJn1Tlk27cTyG_HbJ6CyC_RjdUamwWyXBegdhrXU9C1mow3W4AxoZEjQRk5J5tDppHsE_YipOV_y8gWhvWwtFOyQCr1IBD_UK0gZKHnVdVK2Q0A',
+    title: 'Kiber Tetris Arena (Maxsus Imkoniyatlar)',
+    rating: 4.8,
+    image: tetrisCover,
     category: 'dolzarb',
-    description: "Tizimning qadimiy yadro bloklarini o'rganing, shifrlangan xavfsizlik to'siqlarini yeching va retro ma'lumotlar bazasi sirlarini oching.",
-    playedCount: '74K',
-    releaseDate: '2026-02-14',
-    fileSize: '45 MB',
-    developer: 'ByteSize Games',
-    tags: ['Mantiq', 'Retro', 'Jumboq']
+    description: "Klassik tetris endi quvvatli kiber-imkoniyatlar bilan! Lazerlar, kiber-bombalar, vaqtni muzlatish va aqlli nano-tuzatuvchi manipulyatsiyalar yordamida qatorlarni yo'q qiling va rekord o'rnating.",
+    playedCount: '190K',
+    releaseDate: '2026-06-09',
+    fileSize: '12 MB',
+    developer: 'GlitchLabs Studio',
+    tags: ['Tetris', 'Mantiq', 'AI', 'Maxsus_Imkoniyatlar']
   },
   {
     id: 'neon-drift',
